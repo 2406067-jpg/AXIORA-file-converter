@@ -1,4 +1,5 @@
 import io
+import multiprocessing
 import os
 import subprocess
 import streamlit as st
@@ -118,15 +119,22 @@ def process_docx_to_pdf(docx_path, output_pdf_path):
     return False
 
 
-# Engine Konversi Presisi PDF ➔ Word (pdf2docx)
+# Engine Konversi Presisi PDF ➔ Word (pdf2docx dengan Multiprocessing)
 def process_pdf_to_docx(pdf_bytes, output_docx_path):
-    temp_pdf = "temp_input_convert.pdf"
+    temp_pdf = f"temp_input_{os.getpid()}.pdf"
     with open(temp_pdf, "wb") as f:
         f.write(pdf_bytes)
 
     try:
         cv = Converter(temp_pdf)
-        cv.convert(output_docx_path, start=0, end=None)
+        cores = multiprocessing.cpu_count()
+        cv.convert(
+            output_docx_path,
+            start=0,
+            end=None,
+            multi_processing=True,
+            cpu_count=cores,
+        )
         cv.close()
 
         if os.path.exists(temp_pdf):
@@ -183,7 +191,9 @@ else:
         btn_col1, btn_col2 = st.columns([1.2, 1])
         with btn_col1:
             if st.button("📋 Lihat Semua Menu & Tools", use_container_width=True):
-                st.info("👈 Buka **Sidebar (Menu Kiri)** atau cek area **Tools & Utility** di bawah untuk menggunakan fitur lengkap!")
+                st.info(
+                    "👈 Buka **Sidebar (Menu Kiri)** atau cek area **Tools & Utility** di bawah untuk menggunakan fitur lengkap!"
+                )
 
     with col_graphic:
         st.markdown(
@@ -231,6 +241,73 @@ else:
             f"📌 **{len(uploaded_files)} File Terpilih** untuk dikonversi."
         )
 
+        # Cek apakah pengguna mengunggah banyak foto
+        image_files = [
+            f
+            for f in uploaded_files
+            if f.name.split(".")[-1].lower() in ["jpg", "jpeg", "png", "webp"]
+        ]
+
+        if len(image_files) > 1:
+            st.markdown(
+                """
+                <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); padding: 14px; border-radius: 12px; margin-bottom: 15px;">
+                    <p style="font-size: 0.9rem; font-weight: 700; color: #4ade80; margin: 0 0 4px 0;">🖼️ Opsi Penggabungan Multi-Foto</p>
+                    <p style="font-size: 0.8rem; color: #cbd5e1; margin: 0;">Kamu mengunggah beberapa gambar. Kamu bisa menggabungkan semuanya menjadi 1 file PDF sekaligus di bawah ini.</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            with st.expander(
+                f"📑 Gabungkan {len(image_files)} Foto Menjadi 1 Document PDF",
+                expanded=True,
+            ):
+                merged_name = st.text_input(
+                    "✏️ Nama File PDF Gabungan:",
+                    value="Gabungan_Foto_AXIORA",
+                    key="merged_pdf_name",
+                )
+
+                if st.button("🚀 GABUNGKAN SEMUA FOTO KE 1 PDF"):
+                    with st.spinner(
+                        "⚡ Mengolah & menggabungkan foto menjadi 1 PDF..."
+                    ):
+                        processed_images = []
+                        for img_file in image_files:
+                            img = Image.open(img_file)
+                            if img.mode in ("RGBA", "P"):
+                                img = img.convert("RGB")
+                            processed_images.append(img)
+
+                        if processed_images:
+                            pdf_bytes = io.BytesIO()
+                            first_img = processed_images[0]
+                            rest_imgs = (
+                                processed_images[1:]
+                                if len(processed_images) > 1
+                                else []
+                            )
+
+                            first_img.save(
+                                pdf_bytes,
+                                format="PDF",
+                                save_all=True,
+                                append_images=rest_imgs,
+                            )
+
+                            st.balloons()
+                            st.success(
+                                f"🎉 Berhasil menggabungkan {len(processed_images)} foto ke 1 PDF!"
+                            )
+                            st.download_button(
+                                label="📥 DOWNLOAD PDF GABUNGAN",
+                                data=pdf_bytes.getvalue(),
+                                file_name=f"{merged_name}.pdf",
+                                mime="application/pdf",
+                                key="dl_merged_pdf",
+                            )
+
         for idx, uploaded_file in enumerate(uploaded_files):
             file_name = uploaded_file.name
             file_ext = file_name.split(".")[-1].lower()
@@ -269,7 +346,9 @@ else:
                     if st.button(
                         "🚀 MULAI KONVERSI PDF ➔ WORD", key=f"btn_{idx}"
                     ):
-                        with st.spinner("⚡ Mempertahankan layout & mengonversi PDF ke Word..."):
+                        with st.spinner(
+                            "⚡ Mempertahankan layout & mengonversi PDF ke Word secara cepat..."
+                        ):
                             output_docx_file = f"output_{idx}.docx"
                             success = process_pdf_to_docx(
                                 uploaded_file.getvalue(), output_docx_file
@@ -277,7 +356,9 @@ else:
 
                         if success and os.path.exists(output_docx_file):
                             st.balloons()
-                            st.success("🎉 Berhasil diubah ke Word dengan format rapi!")
+                            st.success(
+                                "🎉 Berhasil diubah ke Word dengan format rapi!"
+                            )
                             with open(output_docx_file, "rb") as f:
                                 st.download_button(
                                     label="📥 DOWNLOAD FILE WORD (.DOCX)",
@@ -298,14 +379,18 @@ else:
                     if st.button(
                         "🚀 MULAI KONVERSI WORD ➔ PDF", key=f"btn_{idx}"
                     ):
-                        with st.spinner("⚡ Mengonversi Word ke PDF secara presisi..."):
+                        with st.spinner(
+                            "⚡ Mengonversi Word ke PDF secara presisi..."
+                        ):
                             input_docx = f"temp_input_{idx}.docx"
                             output_pdf = f"temp_output_{idx}.pdf"
 
                             with open(input_docx, "wb") as f:
                                 f.write(uploaded_file.read())
 
-                            success = process_docx_to_pdf(input_docx, output_pdf)
+                            success = process_docx_to_pdf(
+                                input_docx, output_pdf
+                            )
 
                         if success and os.path.exists(output_pdf):
                             st.balloons()
@@ -390,7 +475,9 @@ else:
                             f"⚡ Memproses audio ke format {target_ext.upper()}..."
                         ):
                             input_audio = f"temp_input_{idx}.{file_ext}"
-                            output_audio = f"output_converted_{idx}.{target_ext}"
+                            output_audio = (
+                                f"output_converted_{idx}.{target_ext}"
+                            )
 
                             with open(input_audio, "wb") as f:
                                 f.write(uploaded_file.read())
@@ -434,7 +521,9 @@ else:
                         f.write(uploaded_file.read())
 
                     if st.button(f"🚀 MULAI KONVERSI VIDEO", key=f"btn_{idx}"):
-                        with st.spinner("⚡ Sedang me-render video via FFmpeg..."):
+                        with st.spinner(
+                            "⚡ Sedang me-render video via FFmpeg..."
+                        ):
                             if "MP3" in pilihan_target:
                                 output_file = f"output_audio_{idx}.mp3"
                                 cmd = [
