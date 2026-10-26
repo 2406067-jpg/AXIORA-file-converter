@@ -15,6 +15,19 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+# Inject Google Analytics
+GA_MEASUREMENT_ID = "G-VE8SK47JCN"
+
+ga_code = f"""
+    <script async src="https://www.googletagmanager.com/gtag/js?id={GA_MEASUREMENT_ID}"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){{dataLayer.push(arguments);}}
+        gtag('js', new Date());
+        gtag('config', '{GA_MEASUREMENT_ID}');
+    </script>
+"""
+st.markdown(ga_code, unsafe_allow_html=True)
 
 # Handler verifikasi file HTML Google Search Console
 query_params = st.query_params
