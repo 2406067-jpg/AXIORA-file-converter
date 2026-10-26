@@ -1,3 +1,4 @@
+# app.py - Main Entry Point AXIORA Universal File Converter
 import io
 import multiprocessing
 import os
@@ -144,6 +145,21 @@ def process_pdf_to_docx(pdf_bytes, output_docx_path):
     except Exception:
         if os.path.exists(temp_pdf):
             os.remove(temp_pdf)
+        return False
+
+
+# Helper aman untuk menjalankan perintah FFmpeg
+def run_ffmpeg_command(cmd):
+    try:
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        return res.returncode == 0
+    except FileNotFoundError:
+        st.error(
+            "⚠️ System Package 'FFmpeg' belum terinstall atau aktif di server. Silakan buka menu 'Manage app' lalu klik 'Reboot app'."
+        )
+        return False
+    except Exception as e:
+        st.error(f"⚠️ Terjadi kesalahan eksekusi FFmpeg: {str(e)}")
         return False
 
 
@@ -368,6 +384,7 @@ else:
                                     mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                                     key=f"dl_{idx}",
                                 )
+                            os.remove(output_docx_file)
                         else:
                             st.error("⚠️ Gagal memproses format PDF ke Word.")
 
@@ -404,6 +421,8 @@ else:
                                     mime="application/pdf",
                                     key=f"dl_{idx}",
                                 )
+                            os.remove(input_docx)
+                            os.remove(output_pdf)
                         else:
                             st.error(
                                 "⚠️ Gagal merender PDF. Pastikan LibreOffice terinstall di server/sistem."
@@ -490,20 +509,23 @@ else:
                                 input_audio,
                                 output_audio,
                             ]
-                            subprocess.run(cmd)
+                            success = run_ffmpeg_command(cmd)
 
-                        st.balloons()
-                        st.success(
-                            f"🎉 Audio berhasil diubah ke format {target_ext.upper()}!"
-                        )
-                        with open(output_audio, "rb") as f:
-                            st.download_button(
-                                label=f"📥 DOWNLOAD AUDIO .{target_ext.upper()}",
-                                data=f,
-                                file_name=f"{target_filename}.{target_ext}",
-                                mime=f"audio/{target_ext}",
-                                key=f"dl_{idx}",
+                        if success and os.path.exists(output_audio):
+                            st.balloons()
+                            st.success(
+                                f"🎉 Audio berhasil diubah ke format {target_ext.upper()}!"
                             )
+                            with open(output_audio, "rb") as f:
+                                st.download_button(
+                                    label=f"📥 DOWNLOAD AUDIO .{target_ext.upper()}",
+                                    data=f,
+                                    file_name=f"{target_filename}.{target_ext}",
+                                    mime=f"audio/{target_ext}",
+                                    key=f"dl_{idx}",
+                                )
+                            os.remove(input_audio)
+                            os.remove(output_audio)
 
                 # 4. VIDEO
                 elif file_ext in ["mp4", "mov", "m4v"]:
@@ -517,14 +539,14 @@ else:
                         key=f"target_{idx}",
                     )
 
-                    input_video = f"temp_input_{idx}.{file_ext}"
-                    with open(input_video, "wb") as f:
-                        f.write(uploaded_file.read())
-
                     if st.button(f"🚀 MULAI KONVERSI VIDEO", key=f"btn_{idx}"):
                         with st.spinner(
                             "⚡ Sedang me-render video via FFmpeg..."
                         ):
+                            input_video = f"temp_input_{idx}.{file_ext}"
+                            with open(input_video, "wb") as f:
+                                f.write(uploaded_file.read())
+
                             if "MP3" in pilihan_target:
                                 output_file = f"output_audio_{idx}.mp3"
                                 cmd = [
@@ -594,18 +616,21 @@ else:
                                     f"{target_filename}.mov",
                                 )
 
-                            subprocess.run(cmd)
+                            success = run_ffmpeg_command(cmd)
 
-                        st.balloons()
-                        st.success("🎉 Konversi video berhasil!")
-                        with open(output_file, "rb") as f:
-                            st.download_button(
-                                label="📥 DOWNLOAD HASIL KONVERSI",
-                                data=f,
-                                file_name=out_name,
-                                mime=mime_out,
-                                key=f"dl_{idx}",
-                            )
+                        if success and os.path.exists(output_file):
+                            st.balloons()
+                            st.success("🎉 Konversi video berhasil!")
+                            with open(output_file, "rb") as f:
+                                st.download_button(
+                                    label="📥 DOWNLOAD HASIL KONVERSI",
+                                    data=f,
+                                    file_name=out_name,
+                                    mime=mime_out,
+                                    key=f"dl_{idx}",
+                                )
+                            os.remove(input_video)
+                            os.remove(output_file)
 
     # Widget Tools / Fitur Ekstra Interaktif
     st.write("---")
