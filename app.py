@@ -15,32 +15,19 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
-# Inject Meta Tag Verifikasi & Google Analytics langsung ke <head> browser via JS Injection
+# Inject Google Analytics
 GA_MEASUREMENT_ID = "G-VE8SK47JCN"
-GOOGLE_VERIFICATION_CODE = "KDhmJIapBuzwa-TzJpDZZB92wIbKZVtAhpAvtEmR8cY"
 
-head_injection_code = f"""
+ga_code = f"""
+    <script async src="https://www.googletagmanager.com/gtag/js?id={GA_MEASUREMENT_ID}"></script>
     <script>
-        // Inject Meta Tag Verifikasi Google ke <head>
-        var meta = document.createElement('meta');
-        meta.name = "google-site-verification";
-        meta.content = "{GOOGLE_VERIFICATION_CODE}";
-        document.getElementsByTagName('head')[0].appendChild(meta);
-
-        // Inject Script Google Analytics ke <head>
-        var gaScript = document.createElement('script');
-        gaScript.async = true;
-        gaScript.src = "https://www.googletagmanager.com/gtag/js?id={GA_MEASUREMENT_ID}";
-        document.getElementsByTagName('head')[0].appendChild(gaScript);
-
         window.dataLayer = window.dataLayer || [];
         function gtag(){{dataLayer.push(arguments);}}
         gtag('js', new Date());
         gtag('config', '{GA_MEASUREMENT_ID}');
     </script>
 """
-st.markdown(head_injection_code, unsafe_allow_html=True)
+st.markdown(ga_code, unsafe_allow_html=True)
 
 # Handler verifikasi file HTML Google Search Console
 query_params = st.query_params
@@ -55,7 +42,14 @@ from views import render_bantuan, render_pengaturan, render_riwayat
 # 2. Inject CSS Tampilan AXIORA
 st.markdown(get_axiora_css(), unsafe_allow_html=True)
 
-# 3. Sidebar Navigation Interaktif
+# 3. Inject Meta Tag Google Search Console
+GOOGLE_VERIFICATION_CODE = "KDhmJIapBuzwa-TzJpDZZB92wIbKZVtAhpAvtEmR8cY"
+st.markdown(
+    f'<meta name="google-site-verification" content="{GOOGLE_VERIFICATION_CODE}" />',
+    unsafe_allow_html=True,
+)
+
+# 4. Sidebar Navigation Interaktif
 with st.sidebar:
     st.markdown(
         """
