@@ -4,18 +4,24 @@
 def get_axiora_css():
     return """
     <style>
-    /* Reset & Base Theme */
+    /* Reset & Base Theme Glassmorphism */
     .stApp {
         background: radial-gradient(circle at 80% -10%, #1e1b4b 0%, #090d16 50%, #030712 100%);
         color: #f8fafc;
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
     
-    /* Hide Streamlit Header & Footer elements */
-    header[data-testid="stHeader"] { visibility: hidden; }
+    /* Display & Style Streamlit Header for Mobile/Desktop Navigation */
+    header[data-testid="stHeader"] { 
+        visibility: visible !important;
+        background: rgba(9, 13, 22, 0.6) !important;
+        backdrop-filter: blur(12px) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    }
+    
     footer { visibility: hidden; }
     
-    /* Sidebar Styling UI */
+    /* Sidebar Styling UI Glassmorphism */
     section[data-testid="stSidebar"] {
         background: rgba(11, 17, 32, 0.85) !important;
         border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
@@ -90,10 +96,10 @@ def get_axiora_css():
         margin-bottom: 20px;
     }
 
-    /* Feature Pills */
+    /* Feature Pills Responsive */
     .feature-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
         gap: 10px;
         margin-bottom: 25px;
     }
@@ -107,6 +113,7 @@ def get_axiora_css():
         display: flex;
         align-items: center;
         gap: 8px;
+        backdrop-filter: blur(8px);
     }
 
     /* File Uploader Container Modern Styling */
@@ -117,6 +124,7 @@ def get_axiora_css():
         padding: 25px !important;
         text-align: center;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(12px);
     }
 
     /* Custom Action Button Styling */
@@ -125,8 +133,8 @@ def get_axiora_css():
         background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%) !important;
         color: #ffffff !important;
         border: none !important;
-        padding: 16px 28px !important;
-        font-size: 1.1rem !important;
+        padding: 14px 24px !important;
+        font-size: 1rem !important;
         font-weight: 800 !important;
         border-radius: 12px !important;
         box-shadow: 0 4px 25px rgba(37, 99, 235, 0.4) !important;
@@ -143,11 +151,30 @@ def get_axiora_css():
         background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
         color: #ffffff !important;
         border: none !important;
-        padding: 16px 28px !important;
-        font-size: 1.1rem !important;
+        padding: 14px 24px !important;
+        font-size: 1rem !important;
         font-weight: 800 !important;
         border-radius: 12px !important;
         box-shadow: 0 4px 25px rgba(16, 185, 129, 0.4) !important;
+        transition: all 0.3s ease !important;
+    }
+    div[data-testid="stDownloadButton"] > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 30px rgba(16, 185, 129, 0.6) !important;
+    }
+
+    /* Custom Streamlit Expander Styling */
+    .streamlit-expanderHeader {
+        background: rgba(15, 23, 42, 0.7) !important;
+        border-radius: 12px !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        color: #f8fafc !important;
+        font-weight: 700 !important;
+    }
+    .streamlit-expanderContent {
+        background: rgba(11, 17, 32, 0.5) !important;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 0 0 12px 12px !important;
     }
 
     /* Status Card */
@@ -157,6 +184,7 @@ def get_axiora_css():
         border-radius: 14px;
         padding: 18px;
         margin-top: 15px;
+        backdrop-filter: blur(10px);
     }
 
     /* Info Cards Bottom Grid */
@@ -166,6 +194,8 @@ def get_axiora_css():
         border-radius: 14px;
         padding: 16px;
         margin-top: 10px;
+        height: 100%;
+        backdrop-filter: blur(8px);
     }
     .info-card-title {
         font-size: 0.9rem;

@@ -68,6 +68,7 @@ with st.sidebar:
             "🖼️ Pasfoto Resizer",
             "💧 Watermark Generator",
         ],
+        key="sb_tools_pilihan",
     )
 
     st.write("---")
@@ -190,7 +191,7 @@ else:
         st.write("")
         btn_col1, btn_col2 = st.columns([1.2, 1])
         with btn_col1:
-            if st.button("📋 Lihat Semua Menu & Tools", use_container_width=True):
+            if st.button("📋 Lihat Semua Menu & Tools", use_container_width=True, key="btn_hero_menu"):
                 st.info(
                     "👈 Buka **Sidebar (Menu Kiri)** atau cek area **Tools & Utility** di bawah untuk menggunakan fitur lengkap!"
                 )
@@ -269,7 +270,7 @@ else:
                     key="merged_pdf_name",
                 )
 
-                if st.button("🚀 GABUNGKAN SEMUA FOTO KE 1 PDF"):
+                if st.button("🚀 GABUNGKAN SEMUA FOTO KE 1 PDF", key="btn_merge_photos"):
                     with st.spinner(
                         "⚡ Mengolah & menggabungkan foto menjadi 1 PDF..."
                     ):
@@ -606,7 +607,7 @@ else:
                                 key=f"dl_{idx}",
                             )
 
-    # Widget Tools / Fitur Ekstra
+    # Widget Tools / Fitur Ekstra Interaktif
     st.write("---")
     with st.expander("🛠️ **Tools & Utility Tambahan**", expanded=False):
         st.markdown(
@@ -614,13 +615,17 @@ else:
         )
         t_col1, t_col2, t_col3, t_col4 = st.columns(4)
         with t_col1:
-            st.button("🗜️ PDF Compressor", use_container_width=True)
+            if st.button("🗜️ PDF Compressor", use_container_width=True, key="tool_pdf_compressor"):
+                st.toast("🗜️ Fitur PDF Compressor akan segera aktif!", icon="⚡")
         with t_col2:
-            st.button("✂️ Split / Merge PDF", use_container_width=True)
+            if st.button("✂️ Split / Merge PDF", use_container_width=True, key="tool_pdf_splitter"):
+                st.toast("✂️ Fitur Split / Merge PDF akan segera aktif!", icon="⚡")
         with t_col3:
-            st.button("🖼️ Pasfoto 3x4 / 4x6", use_container_width=True)
+            if st.button("🖼️ Pasfoto 3x4 / 4x6", use_container_width=True, key="tool_pasfoto_resizer"):
+                st.toast("🖼️ Fitur Pasfoto Resizer akan segera aktif!", icon="⚡")
         with t_col4:
-            st.button("💧 Watermark PDF", use_container_width=True)
+            if st.button("💧 Watermark PDF", use_container_width=True, key="tool_watermark_gen"):
+                st.toast("💧 Fitur Watermark Generator akan segera aktif!", icon="⚡")
 
     # Info Baris Bawah
     st.write("---")
