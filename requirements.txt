@@ -1,5 +1,8 @@
 streamlit
-pillow
 pypdf
-python-docx
 pdf2docx
+python-docx
+Pillow
+moviepy
+pydub
+libreoffice
