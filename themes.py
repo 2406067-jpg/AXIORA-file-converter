@@ -11,28 +11,32 @@ def get_axiora_css():
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
     
-    /* Tampilkan Header & Titik Tiga, Sembunyikan khusus Ikon GitHub / Edit / Star */
+    /* SEMBUNYIKAN SEMUA HEADER & TOOLBAR STREAMLIT CLOUD (TERMASUK GITHUB ICON) */
     header[data-testid="stHeader"] { 
-        visibility: visible !important;
-        background: transparent !important;
+        display: none !important;
+        visibility: hidden !important;
+        height: 0px !important;
+    }
+    
+    div[data-testid="stToolbar"] {
+        display: none !important;
+        visibility: hidden !important;
     }
 
-    /* Sembunyikan spesifik tombol GitHub, Star, dan Fork di Header */
-    header[data-testid="stHeader"] a[href*="github.com"],
-    header[data-testid="stHeader"] button[title*="GitHub"],
-    header[data-testid="stHeader"] button[title*="Edit"],
-    header[data-testid="stHeader"] button[title*="Star"] {
+    .stAppToolbar {
         display: none !important;
     }
 
-    /* Pastikan Tombol Titik Tiga & Status App tetap terlihat dan rapi */
-    header[data-testid="stHeader"] [data-testid="stActionButtonIcon"],
-    header[data-testid="stHeader"] button {
-        color: #f8fafc !important;
+    footer { 
+        display: none !important;
+        visibility: hidden !important; 
     }
     
-    footer { visibility: hidden !important; }
-    
+    /* Adjust Top Padding Biar Tidak Kepotong */
+    .main .block-container {
+        padding-top: 2rem !important;
+    }
+
     /* Sidebar Styling UI Glassmorphism */
     section[data-testid="stSidebar"] {
         background: rgba(11, 17, 32, 0.85) !important;
