@@ -8,11 +8,7 @@ from docx import Document
 from pdf2docx import Converter
 from PIL import Image
 
-# Import Module Tema & Views Navigasi
-from themes import get_axiora_css
-from views import render_bantuan, render_pengaturan, render_riwayat
-
-# 1. Konfigurasi Halaman Streamlit
+# 1. Konfigurasi Halaman Streamlit (HARUS PERTAMA DARI SEMUA ST.* COMMANDS)
 st.set_page_config(
     page_title="AXIORA - Universal File Converter Suite",
     page_icon="⚡",
@@ -20,16 +16,25 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# Handler verifikasi file HTML Google Search Console
+query_params = st.query_params
+if "google_verification" in query_params:
+    st.write("google-site-verification: google062eae63eb97ec5f.html")
+    st.stop()
+
+# Import Module Tema & Views Navigasi
+from themes import get_axiora_css
+from views import render_bantuan, render_pengaturan, render_riwayat
+
 # 2. Inject CSS Tampilan AXIORA
 st.markdown(get_axiora_css(), unsafe_allow_html=True)
 
 # 3. Inject Meta Tag Google Search Console
-GOOGLE_VERIFICATION_CODE = "PASTE_KODE_DARI_GOOGLE_DI_SINI"
-if GOOGLE_VERIFICATION_CODE != "PASTE_KODE_DARI_GOOGLE_DI_SINI":
-    st.markdown(
-        f'<meta name="google-site-verification" content="{GOOGLE_VERIFICATION_CODE}" />',
-        unsafe_allow_html=True,
-    )
+GOOGLE_VERIFICATION_CODE = "KDhmJIapBuzwa-TzJpDZZB92wIbKZVtAhpAvtEmR8cY"
+st.markdown(
+    f'<meta name="google-site-verification" content="{GOOGLE_VERIFICATION_CODE}" />',
+    unsafe_allow_html=True,
+)
 
 # 4. Sidebar Navigation Interaktif
 with st.sidebar:
