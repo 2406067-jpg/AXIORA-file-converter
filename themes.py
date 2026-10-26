@@ -11,15 +11,27 @@ def get_axiora_css():
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
     
-    /* Display & Style Streamlit Header for Mobile/Desktop Navigation */
+    /* Tampilkan Header & Titik Tiga, Sembunyikan khusus Ikon GitHub / Edit / Star */
     header[data-testid="stHeader"] { 
         visibility: visible !important;
-        background: rgba(9, 13, 22, 0.6) !important;
-        backdrop-filter: blur(12px) !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+        background: transparent !important;
+    }
+
+    /* Sembunyikan spesifik tombol GitHub, Star, dan Fork di Header */
+    header[data-testid="stHeader"] a[href*="github.com"],
+    header[data-testid="stHeader"] button[title*="GitHub"],
+    header[data-testid="stHeader"] button[title*="Edit"],
+    header[data-testid="stHeader"] button[title*="Star"] {
+        display: none !important;
+    }
+
+    /* Pastikan Tombol Titik Tiga & Status App tetap terlihat dan rapi */
+    header[data-testid="stHeader"] [data-testid="stActionButtonIcon"],
+    header[data-testid="stHeader"] button {
+        color: #f8fafc !important;
     }
     
-    footer { visibility: hidden; }
+    footer { visibility: hidden !important; }
     
     /* Sidebar Styling UI Glassmorphism */
     section[data-testid="stSidebar"] {
@@ -128,21 +140,22 @@ def get_axiora_css():
     }
 
     /* Custom Action Button Styling */
-    div.stButton > button:first-child {
+    div.stButton > button {
         width: 100%;
         background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%) !important;
         color: #ffffff !important;
         border: none !important;
-        padding: 14px 24px !important;
-        font-size: 1rem !important;
-        font-weight: 800 !important;
+        padding: 12px 20px !important;
+        font-size: 0.95rem !important;
+        font-weight: 700 !important;
         border-radius: 12px !important;
-        box-shadow: 0 4px 25px rgba(37, 99, 235, 0.4) !important;
-        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3) !important;
+        transition: all 0.25s ease !important;
+        cursor: pointer !important;
     }
-    div.stButton > button:first-child:hover {
+    div.stButton > button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 30px rgba(37, 99, 235, 0.6) !important;
+        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5) !important;
     }
 
     /* Download Button */
