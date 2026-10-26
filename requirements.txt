@@ -3,6 +3,5 @@ pypdf
 pdf2docx
 python-docx
 Pillow
-moviepy
 pydub
-libreoffice
+moviepy
