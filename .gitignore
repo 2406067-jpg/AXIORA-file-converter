@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 temp_*
+__pycache__/
+*.pyc
+*.docx
