@@ -3,8 +3,8 @@ import os
 import subprocess
 import streamlit as st
 from docx import Document
+from pdf2docx import Converter
 from PIL import Image
-from pypdf import PdfReader
 
 # Import Module Tema & Views Navigasi
 from themes import get_axiora_css
@@ -21,7 +21,15 @@ st.set_page_config(
 # 2. Inject CSS Tampilan AXIORA
 st.markdown(get_axiora_css(), unsafe_allow_html=True)
 
-# 3. Sidebar Navigation Interaktif
+# 3. Inject Meta Tag Google Search Console
+GOOGLE_VERIFICATION_CODE = "PASTE_KODE_DARI_GOOGLE_DI_SINI"
+if GOOGLE_VERIFICATION_CODE != "PASTE_KODE_DARI_GOOGLE_DI_SINI":
+    st.markdown(
+        f'<meta name="google-site-verification" content="{GOOGLE_VERIFICATION_CODE}" />',
+        unsafe_allow_html=True,
+    )
+
+# 4. Sidebar Navigation Interaktif
 with st.sidebar:
     st.markdown(
         """
@@ -39,11 +47,26 @@ with st.sidebar:
     st.write("")
     st.markdown("### 📌 Menu Navigasi")
 
-    # Navigasi Aktif yang Bisa Diklik!
+    # Navigasi Utama
     menu_pilihan = st.radio(
         "Pilih Halaman:",
         ["🏠 Beranda", "📜 Riwayat Konversi", "⚙️ Pengaturan", "❓ Bantuan"],
         label_visibility="collapsed",
+    )
+
+    st.write("---")
+
+    # Menu Tools / Fitur Tambahan (Akses Cepat)
+    st.markdown("### 🛠️ Fitur & Tools")
+    tools_pilihan = st.selectbox(
+        "Akses Alat Cepat:",
+        [
+            "⚡ Konverter Utama",
+            "🗜️ PDF Compressor",
+            "✂️ PDF Splitter",
+            "🖼️ Pasfoto Resizer",
+            "💧 Watermark Generator",
+        ],
     )
 
     st.write("---")
@@ -58,17 +81,17 @@ with st.sidebar:
     )
 
 
-# Engine Konversi DOCX ➔ PDF
+# Engine Konversi Presisi Word ➔ PDF (LibreOffice)
 def process_docx_to_pdf(docx_path, output_pdf_path):
     try:
         cmd = [
-            "soffice",
+            "libreoffice",
             "--headless",
             "--convert-to",
             "pdf",
             docx_path,
             "--outdir",
-            ".",
+            os.path.dirname(output_pdf_path) or ".",
         ]
         res = subprocess.run(cmd, capture_output=True, text=True)
         if res.returncode == 0 and os.path.exists(output_pdf_path):
@@ -77,15 +100,42 @@ def process_docx_to_pdf(docx_path, output_pdf_path):
         pass
 
     try:
-        from docx2pdf import convert
-
-        convert(docx_path, output_pdf_path)
-        if os.path.exists(output_pdf_path):
+        cmd = [
+            "soffice",
+            "--headless",
+            "--convert-to",
+            "pdf",
+            docx_path,
+            "--outdir",
+            os.path.dirname(output_pdf_path) or ".",
+        ]
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        if res.returncode == 0 and os.path.exists(output_pdf_path):
             return True
     except Exception:
         pass
 
     return False
+
+
+# Engine Konversi Presisi PDF ➔ Word (pdf2docx)
+def process_pdf_to_docx(pdf_bytes, output_docx_path):
+    temp_pdf = "temp_input_convert.pdf"
+    with open(temp_pdf, "wb") as f:
+        f.write(pdf_bytes)
+
+    try:
+        cv = Converter(temp_pdf)
+        cv.convert(output_docx_path, start=0, end=None)
+        cv.close()
+
+        if os.path.exists(temp_pdf):
+            os.remove(temp_pdf)
+        return True
+    except Exception:
+        if os.path.exists(temp_pdf):
+            os.remove(temp_pdf)
+        return False
 
 
 # ================= ROUTING HALAMAN BERDASARKAN MENU =================
@@ -129,6 +179,12 @@ else:
             unsafe_allow_html=True,
         )
 
+        st.write("")
+        btn_col1, btn_col2 = st.columns([1.2, 1])
+        with btn_col1:
+            if st.button("📋 Lihat Semua Menu & Tools", use_container_width=True):
+                st.info("👈 Buka **Sidebar (Menu Kiri)** atau cek area **Tools & Utility** di bawah untuk menggunakan fitur lengkap!")
+
     with col_graphic:
         st.markdown(
             """
@@ -148,7 +204,12 @@ else:
 
     st.write("")
 
-    uploaded_file = st.file_uploader(
+    if tools_pilihan != "⚡ Konverter Utama":
+        st.info(
+            f"💡 **Kamu memilih menu:** {tools_pilihan}. Fitur ini sedang disiapkan untuk pembaruan berikutnya!"
+        )
+
+    uploaded_files = st.file_uploader(
         "Upload File di Sini (PDF, DOCX, JPG, PNG, WEBP, MP3, WAV, MP4, MOV)",
         type=[
             "docx",
@@ -162,240 +223,315 @@ else:
             "mp4",
             "mov",
         ],
+        accept_multiple_files=True,
     )
 
-    if uploaded_file is not None:
-        file_name = uploaded_file.name
-        file_ext = file_name.split(".")[-1].lower()
-        base_name = os.path.splitext(file_name)[0]
-
+    if uploaded_files:
         st.markdown(
-            f"""
-            <div class="status-card">
-                📁 <b>File Terdeteksi:</b> <code style="color: #60a5fa;">{file_name}</code><br>
-                ⚡ <b>Format Asal:</b> .{file_ext.upper()} | <b>Ukuran:</b> {round(uploaded_file.size / (1024 * 1024), 2)} MB
-            </div>
-            """,
-            unsafe_allow_html=True,
+            f"📌 **{len(uploaded_files)} File Terpilih** untuk dikonversi."
         )
-        st.write("")
 
-        # 1. DOKUMEN
-        if file_ext == "pdf":
-            pilihan_target = st.selectbox(
-                "🎯 Pilih Format Tujuan Konversi:", ["Word Document (.docx)"]
-            )
-            if st.button("🚀 MULAI KONVERSI PDF ➔ WORD"):
-                with st.spinner("⚡ Sedang mengekstrak PDF ke Word..."):
-                    reader = PdfReader(uploaded_file)
-                    doc = Document()
-                    for page in reader.pages:
-                        text = page.extract_text()
-                        if text:
-                            doc.add_paragraph(text)
+        for idx, uploaded_file in enumerate(uploaded_files):
+            file_name = uploaded_file.name
+            file_ext = file_name.split(".")[-1].lower()
+            base_name = os.path.splitext(file_name)[0]
 
-                    output_stream = io.BytesIO()
-                    doc.save(output_stream)
-
-                st.balloons()
-                st.success("🎉 Berhasil diubah ke Word!")
-                st.download_button(
-                    label="📥 DOWNLOAD FILE WORD (.DOCX)",
-                    data=output_stream.getvalue(),
-                    file_name=f"{base_name}.docx",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            with st.expander(
+                f"📁 File #{idx+1}: {file_name} (.{file_ext.upper()})",
+                expanded=True,
+            ):
+                st.markdown(
+                    f"""
+                    <div class="status-card">
+                        📁 <b>File:</b> <code style="color: #60a5fa;">{file_name}</code><br>
+                        ⚡ <b>Format Asal:</b> .{file_ext.upper()} | <b>Ukuran:</b> {round(uploaded_file.size / (1024 * 1024), 2)} MB
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
                 )
+                st.write("")
 
-        elif file_ext == "docx":
-            pilihan_target = st.selectbox(
-                "🎯 Pilih Format Tujuan Konversi:", ["PDF Document (.pdf)"]
-            )
-            if st.button("🚀 MULAI KONVERSI WORD ➔ PDF"):
-                with st.spinner("⚡ Sedang mengonversi Word ke PDF..."):
-                    input_docx = "temp_input.docx"
-                    output_pdf = "temp_input.pdf"
+                # Custom Naming Output
+                custom_name = st.text_input(
+                    "✏️ Ubah Nama File Output (Opsional):",
+                    value=base_name,
+                    key=f"name_{idx}",
+                )
+                target_filename = custom_name if custom_name else base_name
 
-                    with open(input_docx, "wb") as f:
-                        f.write(uploaded_file.read())
+                # 1. DOKUMEN
+                if file_ext == "pdf":
+                    pilihan_target = st.selectbox(
+                        "🎯 Pilih Format Tujuan Konversi:",
+                        ["Word Document (.docx)"],
+                        key=f"target_{idx}",
+                    )
+                    if st.button(
+                        "🚀 MULAI KONVERSI PDF ➔ WORD", key=f"btn_{idx}"
+                    ):
+                        with st.spinner("⚡ Mempertahankan layout & mengonversi PDF ke Word..."):
+                            output_docx_file = f"output_{idx}.docx"
+                            success = process_pdf_to_docx(
+                                uploaded_file.getvalue(), output_docx_file
+                            )
 
-                    success = process_docx_to_pdf(input_docx, output_pdf)
+                        if success and os.path.exists(output_docx_file):
+                            st.balloons()
+                            st.success("🎉 Berhasil diubah ke Word dengan format rapi!")
+                            with open(output_docx_file, "rb") as f:
+                                st.download_button(
+                                    label="📥 DOWNLOAD FILE WORD (.DOCX)",
+                                    data=f,
+                                    file_name=f"{target_filename}.docx",
+                                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                    key=f"dl_{idx}",
+                                )
+                        else:
+                            st.error("⚠️ Gagal memproses format PDF ke Word.")
 
-                if success and os.path.exists(output_pdf):
-                    st.balloons()
-                    st.success("🎉 Berhasil diubah ke PDF!")
-                    with open(output_pdf, "rb") as f:
+                elif file_ext == "docx":
+                    pilihan_target = st.selectbox(
+                        "🎯 Pilih Format Tujuan Konversi:",
+                        ["PDF Document (.pdf)"],
+                        key=f"target_{idx}",
+                    )
+                    if st.button(
+                        "🚀 MULAI KONVERSI WORD ➔ PDF", key=f"btn_{idx}"
+                    ):
+                        with st.spinner("⚡ Mengonversi Word ke PDF secara presisi..."):
+                            input_docx = f"temp_input_{idx}.docx"
+                            output_pdf = f"temp_output_{idx}.pdf"
+
+                            with open(input_docx, "wb") as f:
+                                f.write(uploaded_file.read())
+
+                            success = process_docx_to_pdf(input_docx, output_pdf)
+
+                        if success and os.path.exists(output_pdf):
+                            st.balloons()
+                            st.success("🎉 Berhasil diubah ke PDF!")
+                            with open(output_pdf, "rb") as f:
+                                st.download_button(
+                                    label="📥 DOWNLOAD FILE PDF",
+                                    data=f,
+                                    file_name=f"{target_filename}.pdf",
+                                    mime="application/pdf",
+                                    key=f"dl_{idx}",
+                                )
+                        else:
+                            st.error(
+                                "⚠️ Gagal merender PDF. Pastikan LibreOffice terinstall di server/sistem."
+                            )
+
+                # 2. GAMBAR
+                elif file_ext in ["jpg", "jpeg", "png", "webp"]:
+                    pilihan_target = st.selectbox(
+                        "🎯 Pilih Format Tujuan Konversi:",
+                        [
+                            "PNG Image",
+                            "JPG (JPEG)",
+                            "WEBP Image",
+                            "PDF Document",
+                        ],
+                        key=f"target_{idx}",
+                    )
+
+                    if st.button(f"🚀 MULAI KONVERSI GAMBAR", key=f"btn_{idx}"):
+                        with st.spinner(
+                            f"⚡ Mengonversi gambar ke {pilihan_target}..."
+                        ):
+                            img = Image.open(uploaded_file)
+
+                            if (
+                                "JPG" in pilihan_target
+                                or "PDF" in pilihan_target
+                            ):
+                                if img.mode in ("RGBA", "P"):
+                                    img = img.convert("RGB")
+
+                            img_bytes = io.BytesIO()
+
+                            if "JPG" in pilihan_target:
+                                img.save(img_bytes, format="JPEG", quality=95)
+                                mime_type, out_ext = "image/jpeg", "jpg"
+                            elif "PNG" in pilihan_target:
+                                img.save(img_bytes, format="PNG")
+                                mime_type, out_ext = "image/png", "png"
+                            elif "WEBP" in pilihan_target:
+                                img.save(img_bytes, format="WEBP", quality=90)
+                                mime_type, out_ext = "image/webp", "webp"
+                            elif "PDF" in pilihan_target:
+                                img.save(img_bytes, format="PDF")
+                                mime_type, out_ext = "application/pdf", "pdf"
+
+                        st.balloons()
+                        st.success(
+                            f"🎉 Gambar berhasil diubah ke {out_ext.upper()}!"
+                        )
                         st.download_button(
-                            label="📥 DOWNLOAD FILE PDF",
-                            data=f,
-                            file_name=f"{base_name}.pdf",
-                            mime="application/pdf",
+                            label=f"📥 DOWNLOAD FILE .{out_ext.upper()}",
+                            data=img_bytes.getvalue(),
+                            file_name=f"{target_filename}.{out_ext}",
+                            mime=mime_type,
+                            key=f"dl_{idx}",
                         )
-                else:
-                    st.error(
-                        "⚠️ Tidak dapat merender PDF secara otomatis di Mac tanpa LibreOffice (`brew install libreoffice`)."
+
+                # 3. AUDIO
+                elif file_ext in ["mp3", "wav"]:
+                    pilihan_target = st.selectbox(
+                        "🎯 Pilih Format Tujuan Konversi:",
+                        ["WAV Audio", "MP3 Audio"],
+                        key=f"target_{idx}",
                     )
 
-        # 2. GAMBAR
-        elif file_ext in ["jpg", "jpeg", "png", "webp"]:
-            pilihan_target = st.selectbox(
-                "🎯 Pilih Format Tujuan Konversi:",
-                ["PNG Image", "JPG (JPEG)", "WEBP Image", "PDF Document"],
-            )
+                    if st.button(f"🚀 MULAI KONVERSI AUDIO", key=f"btn_{idx}"):
+                        target_ext = "wav" if "WAV" in pilihan_target else "mp3"
+                        with st.spinner(
+                            f"⚡ Memproses audio ke format {target_ext.upper()}..."
+                        ):
+                            input_audio = f"temp_input_{idx}.{file_ext}"
+                            output_audio = f"output_converted_{idx}.{target_ext}"
 
-            if st.button(f"🚀 MULAI KONVERSI GAMBAR"):
-                with st.spinner(
-                    f"⚡ Mengonversi gambar ke {pilihan_target}..."
-                ):
-                    img = Image.open(uploaded_file)
+                            with open(input_audio, "wb") as f:
+                                f.write(uploaded_file.read())
 
-                    if "JPG" in pilihan_target or "PDF" in pilihan_target:
-                        if img.mode in ("RGBA", "P"):
-                            img = img.convert("RGB")
+                            cmd = [
+                                "ffmpeg",
+                                "-y",
+                                "-i",
+                                input_audio,
+                                output_audio,
+                            ]
+                            subprocess.run(cmd)
 
-                    img_bytes = io.BytesIO()
+                        st.balloons()
+                        st.success(
+                            f"🎉 Audio berhasil diubah ke format {target_ext.upper()}!"
+                        )
+                        with open(output_audio, "rb") as f:
+                            st.download_button(
+                                label=f"📥 DOWNLOAD AUDIO .{target_ext.upper()}",
+                                data=f,
+                                file_name=f"{target_filename}.{target_ext}",
+                                mime=f"audio/{target_ext}",
+                                key=f"dl_{idx}",
+                            )
 
-                    if "JPG" in pilihan_target:
-                        img.save(img_bytes, format="JPEG", quality=95)
-                        mime_type, out_ext = "image/jpeg", "jpg"
-                    elif "PNG" in pilihan_target:
-                        img.save(img_bytes, format="PNG")
-                        mime_type, out_ext = "image/png", "png"
-                    elif "WEBP" in pilihan_target:
-                        img.save(img_bytes, format="WEBP", quality=90)
-                        mime_type, out_ext = "image/webp", "webp"
-                    elif "PDF" in pilihan_target:
-                        img.save(img_bytes, format="PDF")
-                        mime_type, out_ext = "application/pdf", "pdf"
+                # 4. VIDEO
+                elif file_ext in ["mp4", "mov", "m4v"]:
+                    pilihan_target = st.selectbox(
+                        "🎯 Pilih Format / Mode Tujuan:",
+                        [
+                            "MP3 (Ekstrak Suara Audio)",
+                            "MP4 (Anti-Burik Sosmed 1080p 60FPS)",
+                            "MOV Video Format",
+                        ],
+                        key=f"target_{idx}",
+                    )
 
-                st.balloons()
-                st.success(f"🎉 Gambar berhasil diubah ke {out_ext.upper()}!")
-                st.download_button(
-                    label=f"📥 DOWNLOAD FILE .{out_ext.upper()}",
-                    data=img_bytes.getvalue(),
-                    file_name=f"{base_name}.{out_ext}",
-                    mime=mime_type,
-                )
-
-        # 3. AUDIO
-        elif file_ext in ["mp3", "wav"]:
-            pilihan_target = st.selectbox(
-                "🎯 Pilih Format Tujuan Konversi:", ["WAV Audio", "MP3 Audio"]
-            )
-
-            if st.button("🚀 MULAI KONVERSI AUDIO"):
-                target_ext = "wav" if "WAV" in pilihan_target else "mp3"
-                with st.spinner(
-                    f"⚡ Memproses audio ke format {target_ext.upper()}..."
-                ):
-                    input_audio = f"temp_input.{file_ext}"
-                    output_audio = f"output_converted.{target_ext}"
-
-                    with open(input_audio, "wb") as f:
+                    input_video = f"temp_input_{idx}.{file_ext}"
+                    with open(input_video, "wb") as f:
                         f.write(uploaded_file.read())
 
-                    cmd = ["ffmpeg", "-y", "-i", input_audio, output_audio]
-                    subprocess.run(cmd)
+                    if st.button(f"🚀 MULAI KONVERSI VIDEO", key=f"btn_{idx}"):
+                        with st.spinner("⚡ Sedang me-render video via FFmpeg..."):
+                            if "MP3" in pilihan_target:
+                                output_file = f"output_audio_{idx}.mp3"
+                                cmd = [
+                                    "ffmpeg",
+                                    "-y",
+                                    "-i",
+                                    input_video,
+                                    "-vn",
+                                    "-ab",
+                                    "192k",
+                                    "-ar",
+                                    "44100",
+                                    output_file,
+                                ]
+                                mime_out, out_name = (
+                                    "audio/mp3",
+                                    f"{target_filename}.mp3",
+                                )
 
-                st.balloons()
-                st.success(
-                    f"🎉 Audio berhasil diubah ke format {target_ext.upper()}!"
-                )
-                with open(output_audio, "rb") as f:
-                    st.download_button(
-                        label=f"📥 DOWNLOAD AUDIO .{target_ext.upper()}",
-                        data=f,
-                        file_name=f"{base_name}.{target_ext}",
-                        mime=f"audio/{target_ext}",
-                    )
+                            elif "Anti-Burik" in pilihan_target:
+                                output_file = f"output_video_{idx}.mp4"
+                                cmd = [
+                                    "ffmpeg",
+                                    "-y",
+                                    "-i",
+                                    input_video,
+                                    "-vf",
+                                    "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920",
+                                    "-c:v",
+                                    "libx264",
+                                    "-preset",
+                                    "slow",
+                                    "-crf",
+                                    "18",
+                                    "-maxrate",
+                                    "18M",
+                                    "-bufsize",
+                                    "36M",
+                                    "-pix_fmt",
+                                    "yuv420p",
+                                    "-r",
+                                    "60",
+                                    "-movflags",
+                                    "+faststart",
+                                    "-c:a",
+                                    "aac",
+                                    "-b:a",
+                                    "192k",
+                                    output_file,
+                                ]
+                                mime_out, out_name = (
+                                    "video/mp4",
+                                    f"{target_filename}_anti_burik.mp4",
+                                )
 
-        # 4. VIDEO
-        elif file_ext in ["mp4", "mov", "m4v"]:
-            pilihan_target = st.selectbox(
-                "🎯 Pilih Format / Mode Tujuan:",
-                [
-                    "MP3 (Ekstrak Suara Audio)",
-                    "MP4 (Anti-Burik Sosmed 1080p 60FPS)",
-                    "MOV Video Format",
-                ],
-            )
+                            elif "MOV" in pilihan_target:
+                                output_file = f"output_video_{idx}.mov"
+                                cmd = [
+                                    "ffmpeg",
+                                    "-y",
+                                    "-i",
+                                    input_video,
+                                    output_file,
+                                ]
+                                mime_out, out_name = (
+                                    "video/quicktime",
+                                    f"{target_filename}.mov",
+                                )
 
-            input_video = f"temp_input.{file_ext}"
-            with open(input_video, "wb") as f:
-                f.write(uploaded_file.read())
+                            subprocess.run(cmd)
 
-            if st.button("🚀 MULAI KONVERSI VIDEO"):
-                with st.spinner("⚡ Sedang me-render video via FFmpeg..."):
-                    if "MP3" in pilihan_target:
-                        output_file = "output_audio.mp3"
-                        cmd = [
-                            "ffmpeg",
-                            "-y",
-                            "-i",
-                            input_video,
-                            "-vn",
-                            "-ab",
-                            "192k",
-                            "-ar",
-                            "44100",
-                            output_file,
-                        ]
-                        mime_out, out_name = "audio/mp3", f"{base_name}.mp3"
+                        st.balloons()
+                        st.success("🎉 Konversi video berhasil!")
+                        with open(output_file, "rb") as f:
+                            st.download_button(
+                                label="📥 DOWNLOAD HASIL KONVERSI",
+                                data=f,
+                                file_name=out_name,
+                                mime=mime_out,
+                                key=f"dl_{idx}",
+                            )
 
-                    elif "Anti-Burik" in pilihan_target:
-                        output_file = "output_video.mp4"
-                        cmd = [
-                            "ffmpeg",
-                            "-y",
-                            "-i",
-                            input_video,
-                            "-vf",
-                            "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920",
-                            "-c:v",
-                            "libx264",
-                            "-preset",
-                            "slow",
-                            "-crf",
-                            "18",
-                            "-maxrate",
-                            "18M",
-                            "-bufsize",
-                            "36M",
-                            "-pix_fmt",
-                            "yuv420p",
-                            "-r",
-                            "60",
-                            "-movflags",
-                            "+faststart",
-                            "-c:a",
-                            "aac",
-                            "-b:a",
-                            "192k",
-                            output_file,
-                        ]
-                        mime_out, out_name = (
-                            "video/mp4",
-                            f"{base_name}_anti_burik.mp4",
-                        )
-
-                    elif "MOV" in pilihan_target:
-                        output_file = "output_video.mov"
-                        cmd = ["ffmpeg", "-y", "-i", input_video, output_file]
-                        mime_out, out_name = (
-                            "video/quicktime",
-                            f"{base_name}.mov",
-                        )
-
-                    subprocess.run(cmd)
-
-                st.balloons()
-                st.success("🎉 Konversi video berhasil!")
-                with open(output_file, "rb") as f:
-                    st.download_button(
-                        label="📥 DOWNLOAD HASIL KONVERSI",
-                        data=f,
-                        file_name=out_name,
-                        mime=mime_out,
-                    )
+    # Widget Tools / Fitur Ekstra
+    st.write("---")
+    with st.expander("🛠️ **Tools & Utility Tambahan**", expanded=False):
+        st.markdown(
+            "Pilih alat bantu cepat di bawah ini untuk pemrosesan file cepat:"
+        )
+        t_col1, t_col2, t_col3, t_col4 = st.columns(4)
+        with t_col1:
+            st.button("🗜️ PDF Compressor", use_container_width=True)
+        with t_col2:
+            st.button("✂️ Split / Merge PDF", use_container_width=True)
+        with t_col3:
+            st.button("🖼️ Pasfoto 3x4 / 4x6", use_container_width=True)
+        with t_col4:
+            st.button("💧 Watermark PDF", use_container_width=True)
 
     # Info Baris Bawah
     st.write("---")
@@ -412,7 +548,7 @@ else:
         )
     with c3:
         st.markdown(
-            '<div class="info-card"><div class="info-card-title">🔒 Aman & Privasi</div><div class="info-card-desc">File aman diproses lokal di Mac lo.</div></div>',
+            '<div class="info-card"><div class="info-card-title">🔒 Aman & Privasi</div><div class="info-card-desc">File aman diproses lokal di server.</div></div>',
             unsafe_allow_html=True,
         )
     with c4:
